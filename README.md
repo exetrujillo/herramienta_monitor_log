@@ -19,7 +19,7 @@ Una herramienta de monitoreo de logs avanzada para Ubuntu, diseñada para análi
 6. Actividad de Usuario
 7. Malware y Rootkits
 
-## Requisitos Previos
+## Requisitos
 - Python3
 - Sistema Operativo: Ubuntu (probado en versiones recientes)
 - Permisos de administrador, con sudo
