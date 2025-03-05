@@ -23,6 +23,9 @@ class HerramientaMonitorLog:
         # Crear directorio base para logs
         os.makedirs(self.log_dir, exist_ok=True)
         
+        # Diccionario para almacenar loggers y manejadores
+        self.loggers = {}
+        
         # Definición de tipos de logs que se pueden monitorear
         self.log_types = {
             0: "todos",
@@ -40,39 +43,48 @@ class HerramientaMonitorLog:
     def setup_logging(self, log_type):
         """
         Configura el sistema de logging para un tipo de log específico.
-        - Crea un archivo de log único para cada tipo
+        - Crea un único archivo de log por tipo durante la ejecución
         """
         # Obtener el nombre del tipo de log en minúsculas
         log_type_dir = self.log_types.get(log_type, str(log_type).lower())
         
+        # Si ya existe un logger para este tipo, usarlo
+        if log_type_dir in self.loggers:
+            return self.loggers[log_type_dir]
+        
         # Crear ruta completa para el archivo de log
         log_file = os.path.join(
             self.log_dir, 
-            f"{log_type_dir}_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+            f"{log_type_dir}_log_{self.current_date}.log"
         )
         
         # Configurar logging
         logger = logging.getLogger(log_type_dir)
-        logger.handlers.clear()  # Limpiar manejadores previos
+        logger.setLevel(logging.INFO)
+        
+        # Limpiar cualquier manejador existente
+        logger.handlers.clear()
         
         # Crear un nuevo manejador de archivo
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.FileHandler(log_file, mode='a')  # Modo append
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s - %(levelname)s: %(message)s', 
             datefmt='%Y-%m-%d %H:%M:%S'
         ))
         
-        # Configurar el logger
-        logger.setLevel(logging.INFO)
+        # Añadir manejador al logger
         logger.addHandler(file_handler)
         
-        return log_file
+        # Almacenar el logger para reutilización
+        self.loggers[log_type_dir] = logger
+        
+        return logger
     
     def log_system_info(self):
         """Registra información general del sistema"""
-        log_file = self.setup_logging(1)
-        logger = logging.getLogger('sistema')
+        logger = self.setup_logging(1)
         try:
+            logger.info("--- Inicio de Monitoreo de Sistema ---")
             logger.info(f"Hostname: {subprocess.check_output(['hostname']).decode().strip()}")
             logger.info(f"Distribución: {subprocess.check_output(['lsb_release', '-a']).decode().strip()}")
             logger.info(f"Kernel: {subprocess.check_output(['uname', '-r']).decode().strip()}")
@@ -82,9 +94,9 @@ class HerramientaMonitorLog:
         
     def log_authentication(self):
         """Monitorea los logs de autenticación del sistema"""
-        log_file = self.setup_logging(2)
-        logger = logging.getLogger('autenticacion')
+        logger = self.setup_logging(2)
         try:
+            logger.info("--- Inicio de Monitoreo de Autenticación ---")
             logger.info("Últimos inicios de sesión:")
             logger.info(subprocess.check_output(['last', '-a']).decode())
 
@@ -95,9 +107,9 @@ class HerramientaMonitorLog:
         
     def log_network_connections(self):
         """Registra las conexiones de red activas en el sistema"""
-        log_file = self.setup_logging(3)
-        logger = logging.getLogger('red')
+        logger = self.setup_logging(3)
         try:
+            logger.info("--- Inicio de Monitoreo de Red ---")
             logger.info("Conexiones TCP establecidas:")
             logger.info(subprocess.check_output(['ss', '-tuonp']).decode())
         except Exception as e:
@@ -105,9 +117,9 @@ class HerramientaMonitorLog:
         
     def log_processes(self):
         """Monitorea los procesos en ejecución en el sistema"""
-        log_file = self.setup_logging(4)
-        logger = logging.getLogger('procesos')
+        logger = self.setup_logging(4)
         try:
+            logger.info("--- Inicio de Monitoreo de Procesos ---")
             for proc in psutil.process_iter(['pid', 'name', 'username', 'status']):
                 logger.info(f"PID: {proc.info['pid']}, Nombre: {proc.info['name']}, "
                              f"Usuario: {proc.info['username']}, Estado: {proc.info['status']}")
@@ -116,9 +128,9 @@ class HerramientaMonitorLog:
         
     def log_user_activity(self):
         """Registra la actividad de los usuarios conectados"""
-        log_file = self.setup_logging(6)
-        logger = logging.getLogger('actividad_usuario')
+        logger = self.setup_logging(6)
         try:
+            logger.info("--- Inicio de Monitoreo de Actividad de Usuario ---")
             logger.info("Usuarios conectados:")
             logger.info(subprocess.check_output(['w']).decode())
 
@@ -133,9 +145,9 @@ class HerramientaMonitorLog:
         
     def log_malware_checks(self):
         """Realiza una verificación básica de malware"""
-        log_file = self.setup_logging(7)
-        logger = logging.getLogger('malware_rootkits')
+        logger = self.setup_logging(7)
         try:
+            logger.info("--- Inicio de Monitoreo de Malware y Rootkits ---")
             logger.info("Verificación de Rootkits con chkrootkit:")
             logger.info(subprocess.check_output(['chkrootkit']).decode())
         except Exception as e:
